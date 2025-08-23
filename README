@@ -1,0 +1,9 @@
+CuboMovies
+
+CRUD de Filmes: O sistema deve permitir criar, editar, visualizar e excluir filmes.
+
+Busca: Deve existir uma funcionalidade para buscar filmes por texto;
+
+Paginação: A lista de filmes deve ser paginada, exibindo 10 filmes por página.
+
+Ao exibir filmes deve retornar todo o conteúdo
