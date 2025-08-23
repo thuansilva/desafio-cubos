@@ -3,7 +3,7 @@ drop schema if exists cubosmovie cascade;
 create schema cubosmovie;
 
 create table cubosmovie.movie (
-    moviee_id uuid,
+    movie_id uuid,
     movie_title text,
     movie_sinopse text,
     movie_popularity numeric,
@@ -19,7 +19,7 @@ create table cubosmovie.movie (
     movie_trailer_url text,
     movie_porcentage_like numeric,
     movie_created_at timestamptz default now(),
-    movie_updated_at timestamptz default now(),
+    movie_updated_at timestamptz default now()
 );
 
 create table cubosmovie.user (
@@ -28,5 +28,5 @@ create table cubosmovie.user (
     user_email text,
     user_password text,
     user_created_at timestamptz default now(),
-    user_updated_at timestamptz default now(),
+    user_updated_at timestamptz default now()
 );
