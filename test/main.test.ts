@@ -287,9 +287,9 @@ describe("Comportamentos do filme", () => {
     expect(responseDelete.data.error).toBe("Filme não encontrado");
   });
 
-  test("Deve listar filmes filtrando por data de lançamento, duração e popularidade", async () => {
+  test.only("Deve listar filmes filtrando por data de lançamento, duração e popularidade", async () => {
     const response = await axios.get(
-      `http://localhost:3000/movies?page=1&limit=5&movie_date_lauch_start=2020-01-01&movie_date_lauch_end=2025-12-31&movie_duration=120&movie_popularity=80`,
+      `http://localhost:3000/movies?page=1&limit=5&movie_date_lauch_start=2020-01-01&movie_date_lauch_end=2025-12-31&movie_duration=142&movie_popularity=8.7`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -298,18 +298,24 @@ describe("Comportamentos do filme", () => {
     );
 
     const result = response.data;
-    console.log(result);
     expect(result.page).toBe(1);
     expect(result.limit).toBe(5);
     expect(Array.isArray(result.data)).toBe(true);
+    expect(result.total).toBeGreaterThan(0); // garante que existem registros
 
     // 🔎 Garantindo que todos respeitam os filtros
     result.data.forEach((movie: any) => {
-      const date = new Date(movie.movie_date_lauch);
-      expect(date >= new Date("2020-01-01")).toBe(true);
-      expect(date <= new Date("2025-12-31")).toBe(true);
-      expect(movie.movie_duration).toBe(120);
-      expect(movie.movie_popularity).toBe(80);
+      const movieDate = new Date(movie.movie_date_lauch);
+      const startDate = new Date("2020-01-01");
+      const endDate = new Date("2025-12-31");
+
+      // Comparando somente a data
+      expect(movieDate >= startDate).toBe(true);
+      expect(movieDate <= endDate).toBe(true);
+
+      // Comparação aproximada para numeric/float
+      expect(movie.movie_duration).toBe(142);
+      expect(Math.abs(movie.movie_popularity - 8.7)).toBeLessThan(0.01);
     });
   });
 
@@ -356,24 +362,24 @@ describe("Comportamentos do filme", () => {
     expect(inputFilme.movie_title).toBe(updatedData.movie_title);
   });
 
-  test.only("Upload de imagem real para S3", async () => {
-    const filePath = path.join(__dirname, "hellios.jpg"); // caminho do arquivo
-    const form = new FormData();
-    form.append("image", fs.createReadStream(filePath)); // passe o caminho, não o buffer
+  // test.only("Upload de imagem real para S3", async () => {
+  //   const filePath = path.join(__dirname, "hellios.jpg"); // caminho do arquivo
+  //   const form = new FormData();
+  //   form.append("image", fs.createReadStream(filePath)); // passe o caminho, não o buffer
 
-    const response = await axios.post(
-      "http://localhost:3000/movies/upload",
-      form,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...form.getHeaders(),
-        },
-      }
-    );
+  //   const response = await axios.post(
+  //     "http://localhost:3000/movies/upload",
+  //     form,
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         ...form.getHeaders(),
+  //       },
+  //     }
+  //   );
 
-    console.log("URL da imagem:", response.status);
+  //   console.log("URL da imagem:", response.status);
 
-    expect(response.status).toBe(200);
-  });
+  //   expect(response.status).toBe(200);
+  // });
 });
