@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { sendEmail } from "./emailService";
 import { uploadToS3 } from "./s3Middleware";
 import multer from "multer";
+import { MovieRepositoryDatabase } from "./MovieRepository";
 
 const app = express();
 app.use(express.json());
@@ -14,6 +15,8 @@ app.use("/movies", authMiddleware);
 const upload = multer({ storage: multer.memoryStorage() });
 
 const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
+
+const movieRepository = new MovieRepositoryDatabase();
 
 app.post("/movies", async (req: any, res: Response) => {
   const movie = req.body;
@@ -28,62 +31,7 @@ app.post("/movies", async (req: any, res: Response) => {
     return;
   }
 
-  const checkUserQuery = `SELECT user_email, user_name FROM cubosmovie.user WHERE user_id = $1`;
-  const existingUser = await connection.oneOrNone(checkUserQuery, [userId]);
-
-  if (!existingUser) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
-
-  movie.movie_id = crypto.randomUUID();
-  movie.user_id = userId;
-
-  try {
-    const addMovieQuery = `
-        INSERT INTO cubosmovie.movie (
-          movie_id,
-          user_id,
-          movie_title,
-          movie_sinopse,
-          movie_popularity,
-          movie_date_lauch,
-          movie_duration,
-          movie_situation,
-          movie_language,
-          movie_genre,
-          movie_budget,
-          movie_revenue,
-          movie_description,
-          movie_image_url,
-          movie_trailer_url,
-          movie_porcentage_like
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-      `;
-
-    await connection.query(addMovieQuery, [
-      movie.movie_id,
-      movie.user_id,
-      movie.movie_title,
-      movie.movie_sinopse,
-      movie.movie_popularity,
-      movie.movie_date_lauch,
-      movie.movie_duration,
-      movie.movie_situation,
-      movie.movie_language,
-      movie.movie_genre,
-      movie.movie_budget,
-      movie.movie_revenue,
-      movie.movie_description,
-      movie.movie_image_url,
-      movie.movie_trailer_url,
-      movie.movie_porcentage_like,
-    ]);
-  } catch (dbError) {
-    res.status(500).json({ error: "Erro interno ao salvar o filme." });
-    return;
-  }
+  const movieDate = await movieRepository.save(movie, userId);
 
   const launchDate = new Date(movie.movie_date_lauch);
   const nowDate = new Date();
@@ -92,7 +40,7 @@ app.post("/movies", async (req: any, res: Response) => {
   if (isFuture) {
     try {
       await sendEmail(
-        existingUser.user_email,
+        movieDate.user_email,
         `Lembrete: estreia do filme ${movie.movie_title}`,
         `Seu filme ${movie.movie_title} estreia em ${new Date(
           movie.movie_date_lauch
@@ -106,39 +54,33 @@ app.post("/movies", async (req: any, res: Response) => {
   }
 
   res.status(201).json({
-    movie_id: movie.movie_id,
-    user_id: movie.user_id,
+    movie_id: movieDate.movie_id,
+    user_id: movieDate.user_id,
   });
 });
 
 app.get("/movies/:id", async (req: any, res: Response) => {
   const { id } = req.params;
   const userId = req.user.id;
-  const getMovieQuery = `
-    SELECT * 
-    FROM cubosmovie.movie 
-    WHERE movie_id = $1 AND user_id = $2
-  `;
 
-  const movie = await connection.oneOrNone(getMovieQuery, [id, userId]);
-
+  const movie = await movieRepository.getWithOneMovie(id, userId);
   if (!movie) {
     res.status(404).json({ error: "Movie not found" });
     return;
   }
-
   res.json(movie);
 });
 
 app.get("/movies", async (req: any, res: Response) => {
   const {
-    page = "1",
-    limit = "10",
+    page,
+    limit,
     movie_date_lauch_start,
     movie_date_lauch_end,
     movie_duration,
     movie_popularity,
   } = req.query;
+
   const userId = req.user.id;
 
   // 🔎 Validação obrigatória
@@ -150,73 +92,31 @@ app.get("/movies", async (req: any, res: Response) => {
     return;
   }
 
-  const pageNumber = parseInt(page as string, 10);
-  const limitNumber = parseInt(limit as string, 10);
-  const offset = (pageNumber - 1) * limitNumber;
+  try {
+    const result = await movieRepository.getAllMovie(userId, {
+      page,
+      limit,
+      movie_date_lauch_start,
+      movie_date_lauch_end,
+      movie_duration,
+      movie_popularity,
+    });
 
-  // sempre filtra pelo usuário
-  let whereClauses: string[] = [`user_id = $1`];
-  let queryParams: any[] = [userId];
-
-  // 🔎 Obrigatórios
-  queryParams.push(movie_date_lauch_start, movie_date_lauch_end);
-  whereClauses.push(
-    `movie_date_lauch BETWEEN $${queryParams.length - 1} AND $${
-      queryParams.length
-    }`
-  );
-
-  queryParams.push(movie_duration);
-  whereClauses.push(`movie_duration = $${queryParams.length}`);
-
-  // 🔎 Opcional
-  if (movie_popularity) {
-    queryParams.push(movie_popularity);
-    whereClauses.push(`movie_popularity = $${queryParams.length}`);
+    res.json(result);
+  } catch (err: any) {
+    res
+      .status(500)
+      .json({ error: "Erro ao buscar filmes", details: err.message });
   }
-
-  // Query de listagem
-  let getMoviesQuery = `SELECT * FROM cubosmovie.movie WHERE ${whereClauses.join(
-    " AND "
-  )}`;
-  queryParams.push(limitNumber, offset);
-  getMoviesQuery += ` LIMIT $${queryParams.length - 1} OFFSET $${
-    queryParams.length
-  }`;
-
-  const movies = await connection.manyOrNone(getMoviesQuery, queryParams);
-
-  // Query de contagem
-  let totalQuery = `SELECT COUNT(*) FROM cubosmovie.movie WHERE ${whereClauses.join(
-    " AND "
-  )}`;
-  const totalResult = await connection.one(
-    totalQuery,
-    queryParams.slice(0, -2)
-  );
-  const total = parseInt(totalResult.count, 10);
-
-  res.json({
-    page: pageNumber,
-    limit: limitNumber,
-    total,
-    totalPages: Math.ceil(total / limitNumber),
-    data: movies,
-  });
 });
 
 app.delete("/movies/:id", async (req: any, res: Response) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const deleteMovieQuery = `
-    DELETE FROM cubosmovie.movie
-    WHERE movie_id = $1 AND user_id = $2
-  `;
+  const movie = await movieRepository.deleteMovie(id, userId);
 
-  const result = await connection.result(deleteMovieQuery, [id, userId]);
-
-  if (result.rowCount === 0) {
+  if (movie.rowCount === 0) {
     res.status(404).json({ error: "Filme não encontrado" });
     return;
   }
@@ -226,59 +126,25 @@ app.delete("/movies/:id", async (req: any, res: Response) => {
 
 app.put("/movies/:id", async (req: any, res: Response) => {
   const { id } = req.params;
-  const movieUpdates = req.body;
   const userId = req.user.id;
+  const movieUpdates = req.body;
 
-  const allowedFields = [
-    "movie_title",
-    "movie_sinopse",
-    "movie_popularity",
-    "movie_date_lauch",
-    "movie_duration",
-    "movie_situation",
-    "movie_language",
-    "movie_genre",
-    "movie_budget",
-    "movie_revenue",
-    "movie_description",
-    "movie_image_url",
-    "movie_trailer_url",
-    "movie_porcentage_like",
-  ];
+  try {
+    const updatedMovie = await movieRepository.updateMovie(
+      movieUpdates,
+      id,
+      userId
+    );
 
-  const setClauses: string[] = [];
-  const queryParams: any[] = [];
-
-  Object.entries(movieUpdates).forEach(([key, value]) => {
-    if (allowedFields.includes(key)) {
-      queryParams.push(value);
-      setClauses.push(`${key} = $${queryParams.length}`);
+    if (!updatedMovie) {
+      res.status(404).json({ error: "Filme não encontrado" });
+      return;
     }
-  });
 
-  if (setClauses.length === 0) {
-    res.status(400).json({ error: "Nenhum campo válido para atualizar" });
-    return;
+    res.status(200).json(updatedMovie);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
   }
-
-  queryParams.push(id, userId);
-
-  const updateMovieQuery = `
-    UPDATE cubosmovie.movie
-    SET ${setClauses.join(", ")}
-    WHERE movie_id = $${queryParams.length - 1} AND user_id = $${
-    queryParams.length
-  }
-  `;
-
-  const result = await connection.result(updateMovieQuery, queryParams);
-
-  if (result.rowCount === 0) {
-    res.status(404).json({ error: "Filme não encontrado" });
-    return;
-  }
-
-  res.status(200).json({ message: "Filme atualizado com sucesso" });
 });
 
 // usuários
