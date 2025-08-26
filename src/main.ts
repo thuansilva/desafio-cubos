@@ -8,15 +8,24 @@ import { sendEmail } from "./emailService";
 import { uploadToS3 } from "./s3Middleware";
 import multer from "multer";
 import { MovieRepositoryDatabase } from "./MovieRepository";
+import cors from "cors";
+import { LoginRepositoryDatabase } from "./LoginRepository";
+import { UserRepositoryDatabase } from "./UserRepository";
+import { PgPromiseAdapter } from "./DatabaseConnection";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use("/movies", authMiddleware);
 const upload = multer({ storage: multer.memoryStorage() });
 
-const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
+// const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
 
-const movieRepository = new MovieRepositoryDatabase();
+const databaseConnection = new PgPromiseAdapter();
+const loginRepository = new LoginRepositoryDatabase(databaseConnection);
+const userRepository = new UserRepositoryDatabase(databaseConnection);
+const movieRepository = new MovieRepositoryDatabase(databaseConnection);
+databaseConnection.close();
 
 app.post("/movies", async (req: any, res: Response) => {
   const movie = req.body;
@@ -167,33 +176,44 @@ app.post("/users", async (req: Request, res: Response) => {
     return;
   }
 
-  const checkEmailQuery = `
-    SELECT 1 FROM cubosmovie.user WHERE user_email = $1
-  `;
-  const existingUser = await connection.oneOrNone(checkEmailQuery, [
-    user_email,
-  ]);
-
-  if (existingUser) {
-    res.status(400).json({ error: "Email já cadastrado" });
+  try {
+    const newUser = await userRepository.save(
+      user_email,
+      user_password,
+      user_name
+    );
+    res.status(201).json(newUser);
+  } catch (error: any) {
+    if (error.message === "Email já cadastrado") {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Erro ao cadastrar usuário" });
+    }
     return;
   }
 
-  const hashedPassword = await bcrypt.hash(user_password, 10);
+  // const checkEmailQuery = `
+  //   SELECT 1 FROM cubosmovie.user WHERE user_email = $1
+  // `;
+  // const existingUser = await connection.oneOrNone(checkEmailQuery, [
+  //   user_email,
+  // ]);
 
-  const insertUserQuery = `
-    INSERT INTO cubosmovie.user (user_id, user_name, user_email, user_password)
-    VALUES ($1, $2, $3, $4)
-  `;
+  // if (existingUser) {
+  //   res.status(400).json({ error: "Email já cadastrado" });
+  //   return;
+  // }
 
-  await connection.query(insertUserQuery, [
-    user_id,
-    user_name,
-    user_email,
-    hashedPassword,
-  ]);
+  // const hashedPassword = await bcrypt.hash(user_password, 10);
 
-  res.status(201).json({ user_id, user_name, user_email });
+  // const insertUserQuery = `
+  //   INSERT INTO cubosmovie.user (user_id, user_name, user_email, user_password)
+  //   VALUES ($1, $2, $3, $4)
+  // `;
+
+  // res.status(201).json({ user_id, user_name, user_email });
+
+  //
 });
 
 app.post("/login", async (req: Request, res: Response) => {
@@ -204,33 +224,39 @@ app.post("/login", async (req: Request, res: Response) => {
     return;
   }
 
-  const getUserQuery = `
-    SELECT * FROM cubosmovie.user WHERE user_email = $1
-  `;
-
-  const user = await connection.oneOrNone(getUserQuery, [user_email]);
-
-  if (!user) {
+  try {
+    const token = await loginRepository.authenticate(user_email, user_password);
+    res.json({ token });
+  } catch (error) {
     res.status(401).json({ error: "Credenciais inválidas" });
     return;
   }
 
-  const passwordMatch = await bcrypt.compare(user_password, user.user_password);
+  // const getUserQuery = `
+  //   SELECT * FROM cubosmovie.user WHERE user_email = $1
+  // `;
 
-  if (!passwordMatch) {
-    res.status(401).json({ error: "Credenciais inválidas" });
-    return;
-  }
+  // const user = await connection.oneOrNone(getUserQuery, [user_email]);
 
-  const token = jwt.sign(
-    { id: user.user_id },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: "1h",
-    }
-  );
+  // if (!user) {
+  //   res.status(401).json({ error: "Credenciais inválidas" });
+  //   return;
+  // }
 
-  res.json({ token });
+  // const passwordMatch = await bcrypt.compare(user_password, user.user_password);
+
+  // if (!passwordMatch) {
+  //   res.status(401).json({ error: "Credenciais inválidas" });
+  //   return;
+  // }
+
+  // const token = jwt.sign(
+  //   { id: user.user_id },
+  //   process.env.JWT_SECRET as string,
+  //   {
+  //     expiresIn: "1h",
+  //   }
+  // );
 });
 
 app.post(
@@ -254,7 +280,7 @@ app.post(
 );
 
 app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+  console.log("Server is running on port 4000");
 });
 
 export { app };

@@ -287,7 +287,7 @@ describe("Comportamentos do filme", () => {
     expect(responseDelete.data.error).toBe("Filme não encontrado");
   });
 
-  test.only("Deve listar filmes filtrando por data de lançamento, duração e popularidade", async () => {
+  test("Deve listar filmes filtrando por data de lançamento, duração e popularidade", async () => {
     const response = await axios.get(
       `http://localhost:3000/movies?page=1&limit=5&movie_date_lauch_start=2020-01-01&movie_date_lauch_end=2025-12-31&movie_duration=142&movie_popularity=8.7`,
       {

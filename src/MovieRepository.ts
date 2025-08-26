@@ -1,6 +1,7 @@
 import pg from "pg";
 import pgp from "pg-promise";
 import crypto from "crypto";
+import DatabaseConnection from "./DatabaseConnection";
 export default interface MovieRepository {
   save(movie: any, user_id: string): Promise<any>;
   getWithOneMovie(movie_id: string, user_id: string): Promise<any>;
@@ -30,16 +31,19 @@ pg.types.setTypeParser(pg.types.builtins.NUMERIC, (val: any) =>
 pg.types.setTypeParser(pg.types.builtins.INT8, (val: any) => parseInt(val, 10));
 
 export class MovieRepositoryDatabase implements MovieRepository {
+  constructor(readonly connection: DatabaseConnection) {}
+
   async save(movie: any, user_id: string): Promise<any> {
-    const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
+    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
 
     const checkUserQuery = `SELECT user_email, user_name FROM cubosmovie.user WHERE user_id = $1`;
-    const existingUser = await connection.oneOrNone(checkUserQuery, [user_id]);
+    const existingUser = await this.connection.oneOrNone(checkUserQuery, [
+      user_id,
+    ]);
 
-    // if (!existingUser) {
-    //   res.status(404).json({ error: "Usuário não encontrado" });
-    //   return;
-    // }
+    if (!existingUser) {
+      throw new Error("Usuário não encontrado");
+    }
 
     movie.movie_id = crypto.randomUUID();
     movie.user_id = user_id;
@@ -67,7 +71,7 @@ export class MovieRepositoryDatabase implements MovieRepository {
         RETURNING *
       `;
 
-    let movieData = await connection.query(addMovieQuery, [
+    let movieData = await this.connection.query(addMovieQuery, [
       movie.movie_id,
       movie.user_id,
       movie.movie_title,
@@ -86,7 +90,7 @@ export class MovieRepositoryDatabase implements MovieRepository {
       Number(movie.movie_porcentage_like),
     ]);
 
-    await connection.$pool.end();
+    // await this.connection.close();
     return {
       ...movieData[0],
       ...existingUser,
@@ -94,18 +98,18 @@ export class MovieRepositoryDatabase implements MovieRepository {
   }
 
   async getWithOneMovie(movie_id: string, user_id: string): Promise<any> {
-    const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
+    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
     const getMovieQuery = `
     SELECT * 
     FROM cubosmovie.movie 
     WHERE movie_id = $1 AND user_id = $2
   `;
 
-    const movie = await connection.oneOrNone(getMovieQuery, [
+    const movie = await this.connection.oneOrNone(getMovieQuery, [
       movie_id,
       user_id,
     ]);
-    await connection.$pool.end();
+    // await connection.$pool.end();
 
     return movie;
   }
@@ -121,7 +125,7 @@ export class MovieRepositoryDatabase implements MovieRepository {
       movie_popularity?: number;
     }
   ): Promise<any> {
-    const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
+    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
 
     const {
       page = "1",
@@ -169,22 +173,21 @@ export class MovieRepositoryDatabase implements MovieRepository {
     LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
   `;
 
-    const movies = await connection.manyOrNone(getMoviesQuery, queryParams);
-    // console.log("MOVIES", movies);
+    const movies = await this.connection.manyOrNone(
+      getMoviesQuery,
+      queryParams
+    );
 
-    // 🔎 Query de contagem total
     const totalQuery = `
     SELECT COUNT(*) 
     FROM cubosmovie.movie 
     WHERE ${whereClauses.join(" AND ")}
   `;
-    const totalResult = await connection.one(
+    const totalResult = await this.connection.one(
       totalQuery,
       queryParams.slice(0, -2)
     );
     const total = parseInt(totalResult.count, 10);
-    // console.log("queryParams", queryParams);
-    await connection.$pool.end();
 
     return {
       page: pageNumber,
