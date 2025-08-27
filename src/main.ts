@@ -107,7 +107,6 @@ app.put("/movies/:id", async (req: any, res: Response) => {
 
   try {
     const updatedMovie = await updateMovie.update(movieUpdates, id, userId);
-    console.log("updatedMovie", updatedMovie);
     res.status(200).json(updatedMovie);
   } catch (err: any) {
     res.status(404).json({ error: err.message });
