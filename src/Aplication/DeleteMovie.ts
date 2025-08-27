@@ -1,4 +1,4 @@
-import MovieRepository from "./MovieRepository";
+import MovieRepository from "../Infra/Repository/MovieRepository";
 
 export default class DeleteMovie {
   constructor(readonly movieRepository: MovieRepository) {}

@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import DatabaseConnection from "./DatabaseConnection";
+import DatabaseConnection from "../Database/DatabaseConnection";
 
 export interface UserRepository {
   save(

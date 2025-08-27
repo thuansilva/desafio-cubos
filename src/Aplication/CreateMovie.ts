@@ -1,7 +1,7 @@
-import { sendEmail } from "./emailService";
-import { LoginRepository } from "./LoginRepository";
-import Movie from "./Movie";
-import MovieRepository from "./MovieRepository";
+import { sendEmail } from "../Infra/Services/emailService";
+import Movie from "../Domain/Movie";
+import MovieRepository from "../Infra/Repository/MovieRepository";
+import { LoginRepository } from "../Infra/Repository/LoginRepository";
 
 export default class CreateMovie {
   constructor(

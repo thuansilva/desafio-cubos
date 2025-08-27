@@ -1,6 +1,6 @@
 import pg from "pg";
 
-import DatabaseConnection from "./DatabaseConnection";
+import DatabaseConnection from "../Database/DatabaseConnection";
 export default interface MovieRepository {
   save(movie: any, user_id: string): Promise<any>;
   getWithOneMovie(movie_id: string, user_id: string): Promise<any>;

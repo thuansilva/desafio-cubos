@@ -1,5 +1,5 @@
-import Movie from "./Movie";
-import MovieRepository from "./MovieRepository";
+import Movie from "../Domain/Movie";
+import MovieRepository from "../Infra/Repository/MovieRepository";
 
 export default class UpdateMovie {
   constructor(readonly movieRepository: MovieRepository) {}

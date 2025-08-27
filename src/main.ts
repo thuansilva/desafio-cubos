@@ -1,16 +1,16 @@
 import express, { Request, Response } from "express";
-import authMiddleware from "./authMiddleware";
-import { uploadToS3 } from "./s3Middleware";
+import authMiddleware from "./Infra/Middleware/authMiddleware";
+import { uploadToS3 } from "./Infra/Middleware/s3Middleware";
 import multer from "multer";
-import { MovieRepositoryDatabase } from "./MovieRepository";
+import { MovieRepositoryDatabase } from "./Infra/Repository/MovieRepository";
 import cors from "cors";
-import { LoginRepositoryDatabase } from "./LoginRepository";
-import { UserRepositoryDatabase } from "./UserRepository";
-import { PgPromiseAdapter } from "./DatabaseConnection";
-import CreateMovie from "./CreateMovie";
-import GetMovie from "./GetMovie";
-import DeleteMovie from "./DeleteMovie";
-import UpdateMovie from "./UpdateMovie";
+import { PgPromiseAdapter } from "./Infra/Database/DatabaseConnection";
+import CreateMovie from "./Aplication/CreateMovie";
+import GetMovie from "./Aplication/GetMovie";
+import DeleteMovie from "./Aplication/DeleteMovie";
+import UpdateMovie from "./Aplication/UpdateMovie";
+import { LoginRepositoryDatabase } from "./Infra/Repository/LoginRepository";
+import { UserRepositoryDatabase } from "./Infra/Repository/UserRepository";
 
 const app = express();
 app.use(cors());
@@ -103,7 +103,6 @@ app.put("/movies/:id", async (req: any, res: Response) => {
   const { id } = req.params;
   const userId = req.user.id;
   const movieUpdates = req.body;
-  console.log("movieUpdates", movieUpdates);
 
   try {
     const updatedMovie = await updateMovie.update(movieUpdates, id, userId);

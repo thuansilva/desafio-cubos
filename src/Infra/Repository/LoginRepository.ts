@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import DatabaseConnection from "./DatabaseConnection";
+import DatabaseConnection from "../Database/DatabaseConnection";
 
 export interface LoginRepository {
   authenticate(user_email: string, user_password: string): Promise<string>;
