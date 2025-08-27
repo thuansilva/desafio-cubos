@@ -1,37 +1,56 @@
-CuboMovies
+# Cubo Movies
 
-CRUD de Filmes: O sistema deve permitir criar, editar, visualizar e excluir filmes.
+![Cubo Movies](https://img.shields.io/badge/Cubo-Movies-blue)
 
-Busca: Deve existir uma funcionalidade para buscar filmes por texto;
+Projeto de backend desenvolvido como desafio técnico, utilizando **Node.js**, arquitetura limpa e princípios do **SOLID**, com testes de integração. O projeto inclui integração com **PostgreSQL** e envio de e-mails via **MailHog**, ambos gerenciados com **Docker**.
 
-Paginação: A lista de filmes deve ser paginada, exibindo 10 filmes por página.
+---
 
-Ao exibir filmes deve retornar todo o conteúdo
+## Tecnologias
 
-Página de Login
-[] - Contém formulário de login com campo para e-mail e senha.
+- Node.js
+- TypeScript
+- PostgreSQL (via Docker)
+- MailHog (via Docker)
+- Docker & Docker Compose
+- Jest / Supertest (para testes de integração)
+- Arquitetura limpa e princípios SOLID
 
-3.2 Página de Cadastro
-[x]- Formulário de cadastro com campo de Nome, email, senha.
+---
 
-3.3 Página de Listagem de Filmes
-[x] - Exibe a lista de filmes cadastrados, independentemente de haver busca ativa.
-[x] - Possui um campo de busca que filtra os filmes conforme o texto inserido.
-[x] - A lista deve ser paginada, com 10 itens por página.
+## Funcionalidades
 
-[x]-Ao clicar no cartão de um filme, o usuário será redirecionado para a página de detalhes.
-[](coisa de front)Se o usuário não esta logado, não deve conseguir acessar essa pagina
+- Cadastro e autenticação de usuários
+- Gerenciamento de filmes (CRUD)
+- Validação e tratamento de erros
+- Envio de e-mails de confirmação (MailHog)
+- Testes de integração cobrindo fluxos principais
 
-3.3.1 Filtros
-[x] - Os filtros por duração e data de lançamento são obrigatórios;
-[] - (front) A aplicação deve permitir que o usuário informe uma data de inicio e fim para a listagem de filmes
-[] - (coisa de front)Além de duração e data, você deve adicionar ao menos 1 um filtro extra de sua escolha
+---
 
-3.4 Adição e Edição de filme
-[x] - Quando um filme é criado com uma data de lançamento futura, o usuário deve ser receber um email de lembrete na data de estreia do filme.
+## Como rodar o projeto
 
-3.5 Página de Detalhes do Filme
-[x] - Exibe informações como título, título original, data de lançamento, descrição, orçamento, entre outros detalhes.
+1. Clone o repositório:
 
-3.6 Permissões
-[x] - As ações de visualizar, editar e excluir filmes devem ser exclusivas para o usuário que os cadastrou.
+```bash
+git clone https://github.com/thuansilva/cubo-movies.git
+cd cubo-movies
+```
+
+2. Instale as dependências:
+
+```bash
+npm install
+```
+
+3.Rode o servidor
+
+```bash
+npm run dev
+```
+
+3.Execute os Testes
+
+```bash
+npm run test
+```
