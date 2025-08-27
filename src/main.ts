@@ -32,6 +32,13 @@ app.post("/movies", async (req: any, res: Response) => {
   const userId = req.user.id;
   try {
     const movieDate = await createMovie.execute(movie, userId);
+    await createMovie.sendEmailAlert(
+      {
+        movie_date_lauch: movieDate.movie_date_lauch,
+        movie_title: movieDate.movie_title,
+      },
+      userId
+    );
 
     res.status(201).json({
       movie_id: movieDate.movie_id,
