@@ -6,6 +6,7 @@ export default interface DatabaseConnection {
   oneOrNone(statement: string, params: any): Promise<any>;
   one(statement: string, params: any): Promise<any>;
   manyOrNone(statement: string, params: any): Promise<any>;
+  delete(statement: string, params: any): Promise<any>;
 }
 
 export class PgPromiseAdapter implements DatabaseConnection {
@@ -29,6 +30,9 @@ export class PgPromiseAdapter implements DatabaseConnection {
 
   async manyOrNone(statement: string, params: any): Promise<any> {
     return await this.connection.manyOrNone(statement, params);
+  }
+  async delete(statement: string, params: any): Promise<any> {
+    return await this.connection.result(statement, params);
   }
 
   close(): Promise<void> {

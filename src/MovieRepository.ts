@@ -1,6 +1,5 @@
 import pg from "pg";
-import pgp from "pg-promise";
-import crypto from "crypto";
+
 import DatabaseConnection from "./DatabaseConnection";
 export default interface MovieRepository {
   save(movie: any, user_id: string): Promise<any>;
@@ -8,12 +7,12 @@ export default interface MovieRepository {
   getAllMovie(
     user_id: string,
     filters: {
-      page?: string;
-      limit?: string;
+      page: string;
+      limit: string;
       movie_date_lauch_start: string;
       movie_date_lauch_end: string;
       movie_duration: number;
-      movie_popularity?: number;
+      movie_popularity: number;
     }
   ): Promise<any>;
   deleteMovie(movie_id: string, user_id: string): Promise<any>;
@@ -34,8 +33,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
   constructor(readonly connection: DatabaseConnection) {}
 
   async save(movie: any, user_id: string): Promise<any> {
-    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
-
     const checkUserQuery = `SELECT user_email, user_name FROM cubosmovie.user WHERE user_id = $1`;
     const existingUser = await this.connection.oneOrNone(checkUserQuery, [
       user_id,
@@ -45,7 +42,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
       throw new Error("Usuário não encontrado");
     }
 
-    movie.movie_id = crypto.randomUUID();
     movie.user_id = user_id;
 
     const addMovieQuery = `
@@ -90,7 +86,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
       Number(movie.movie_porcentage_like),
     ]);
 
-    // await this.connection.close();
     return {
       ...movieData[0],
       ...existingUser,
@@ -98,7 +93,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
   }
 
   async getWithOneMovie(movie_id: string, user_id: string): Promise<any> {
-    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
     const getMovieQuery = `
     SELECT * 
     FROM cubosmovie.movie 
@@ -109,8 +103,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
       movie_id,
       user_id,
     ]);
-    // await connection.$pool.end();
-
     return movie;
   }
 
@@ -125,8 +117,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
       movie_popularity?: number;
     }
   ): Promise<any> {
-    // const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
-
     const {
       page = "1",
       limit = "10",
@@ -199,18 +189,16 @@ export class MovieRepositoryDatabase implements MovieRepository {
   }
 
   async deleteMovie(movie_id: string, user_id: string): Promise<any> {
-    const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
     const deleteMovieQuery = `
         DELETE FROM cubosmovie.movie
         WHERE movie_id = $1 AND user_id = $2
         RETURNING *
       `;
 
-    const result = await connection.result(deleteMovieQuery, [
+    const result = await this.connection.delete(deleteMovieQuery, [
       movie_id,
       user_id,
     ]);
-    await connection.$pool.end();
 
     return result;
   }
@@ -220,8 +208,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
     movie_id: string,
     user_id: string
   ): Promise<any> {
-    const connection = pgp()("postgres://postgres:123456@localhost:5432/app");
-
     const allowedFields = [
       "movie_title",
       "movie_sinopse",
@@ -250,7 +236,6 @@ export class MovieRepositoryDatabase implements MovieRepository {
     });
 
     if (setClauses.length === 0) {
-      await connection.$pool.end();
       throw new Error("Nenhum campo válido para atualizar");
     }
 
@@ -264,12 +249,11 @@ export class MovieRepositoryDatabase implements MovieRepository {
     RETURNING *
   `;
 
-    const updatedMovie = await connection.oneOrNone(
+    const updatedMovie = await this.connection.oneOrNone(
       updateMovieQuery,
       queryParams
     );
-    await connection.$pool.end();
 
-    return updatedMovie; // retorna o filme atualizado ou null
+    return updatedMovie;
   }
 }

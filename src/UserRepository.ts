@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import DatabaseConnection from "./DatabaseConnection";
 
-export interface LoginRepository {
+export interface UserRepository {
   save(
     user_email: string,
     user_password: string,
@@ -10,7 +10,7 @@ export interface LoginRepository {
   ): Promise<{ user_id: number; user_email: string; user_name: string }>;
 }
 
-export class UserRepositoryDatabase implements LoginRepository {
+export class UserRepositoryDatabase implements UserRepository {
   constructor(readonly connection: DatabaseConnection) {}
 
   async save(

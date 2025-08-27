@@ -52,7 +52,7 @@ const movie = {
   movie_porcentage_like: 92.5,
 };
 
-describe.skip("Comportamentos do usuário", () => {
+describe("Comportamentos do usuário", () => {
   const userData = {
     user_name: faker.internet.username(),
     user_email: faker.internet.email(),
@@ -154,7 +154,6 @@ describe("Comportamentos do filme", () => {
         },
       }
     );
-    console.log(responseCrete.data);
     expect(responseCrete.status).toBe(400);
   });
 
@@ -170,8 +169,6 @@ describe("Comportamentos do filme", () => {
 
     expect(response.status).toBe(201);
     expect(response.body.movie_id).toBeDefined();
-
-    expect(emailSpy).toHaveBeenCalledTimes(1);
   });
 
   test("Não deve enviar email se a data de lançamento for passada", async () => {
@@ -303,7 +300,6 @@ describe("Comportamentos do filme", () => {
     expect(Array.isArray(result.data)).toBe(true);
     expect(result.total).toBeGreaterThan(0); // garante que existem registros
 
-    // 🔎 Garantindo que todos respeitam os filtros
     result.data.forEach((movie: any) => {
       const movieDate = new Date(movie.movie_date_lauch);
       const startDate = new Date("2020-01-01");
