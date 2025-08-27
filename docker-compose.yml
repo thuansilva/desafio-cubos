@@ -8,3 +8,9 @@ services:
       - "5432:5432"
     volumes:
       - ./create.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025" # Porta SMTP para envio de emails
+      - "8025:8025" # Interface web para visualização dos emails
