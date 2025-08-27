@@ -10,8 +10,7 @@ import fs from "fs";
 import path from "path";
 import FormData from "form-data";
 
-// import { sendEmail } from "../src/emailService";
-import * as emailService from "../src/emailService";
+import * as emailService from "../src/Infra/Services/emailService";
 
 axios.defaults.validateStatus = () => true;
 
@@ -81,7 +80,6 @@ describe("Comportamentos do usuário", () => {
 
   test("Não deve criar usuário com dados vazios", async () => {
     const responseCrete = await axios.post("http://localhost:3000/users", {});
-    console.log(responseCrete.data);
     expect(responseCrete.status).toBe(400);
   });
 });
@@ -159,16 +157,27 @@ describe("Comportamentos do filme", () => {
 
   test("Quando um filme é criado com data futura, o usuário recebe um email de lembrete", async () => {
     const futureDate = "2050-12-01T00:00:00Z";
-    const emailSpy = jest
-      .spyOn(emailService, "sendEmail")
-      .mockImplementation(() => Promise.resolve());
-    const response = await supertest(app)
-      .post("/movies")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ ...movie, movie_date_lauch: futureDate });
+    const response = await axios.post(
+      "http://localhost:3000/movies",
+      {
+        ...movie,
+        movie_date_lauch: futureDate,
+        user_id,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const { movie_id } = response.data;
+
+    console.log("response.data", response.data);
+    expect(movie_id).toBeDefined();
+    expect(response.data.user_id).toBe(user_id);
 
     expect(response.status).toBe(201);
-    expect(response.body.movie_id).toBeDefined();
   });
 
   test("Não deve enviar email se a data de lançamento for passada", async () => {
@@ -278,7 +287,6 @@ describe("Comportamentos do filme", () => {
         },
       }
     );
-    console.log("responseDelete", responseDelete.data);
 
     expect(responseDelete.status).toBe(404);
     expect(responseDelete.data.error).toBe("Filme não encontrado");
@@ -358,6 +366,7 @@ describe("Comportamentos do filme", () => {
     expect(inputFilme.movie_title).toBe(updatedData.movie_title);
   });
 
+  // Envia para a Aws
   // test.only("Upload de imagem real para S3", async () => {
   //   const filePath = path.join(__dirname, "hellios.jpg"); // caminho do arquivo
   //   const form = new FormData();

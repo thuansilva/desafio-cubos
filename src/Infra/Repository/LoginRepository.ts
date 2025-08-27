@@ -46,7 +46,7 @@ export class LoginRepositoryDatabase implements LoginRepository {
 
   async getUser(user_id: string) {
     const getUserQuery = `
-      SELECT user_id, user_name, user_email, created_at 
+      SELECT user_id, user_name, user_email, user_created_at
       FROM cubosmovie.user 
       WHERE user_id = $1
     `;

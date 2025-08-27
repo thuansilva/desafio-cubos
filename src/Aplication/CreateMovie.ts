@@ -36,27 +36,33 @@ export default class CreateMovie {
     return result;
   }
 
-  async sendEmailAlert(movie: movieAlert, userId: string) {
-    const launchDate = new Date(movie.movie_date_lauch);
-    const nowDate = new Date();
-    const isFuture = launchDate > nowDate;
+  async sendEmailAlert(movie: MovieAlert, userId: string) {
+    try {
+      const launchDate = new Date(movie.movie_date_lauch);
+      const nowDate = new Date();
 
-    const { user_email } = await this.loginRepository.getUser(userId);
+      if (launchDate <= nowDate) return; // só envia se for futuro
 
-    if (isFuture) {
-      try {
-        await sendEmail(
-          user_email,
-          `Lembrete: estreia do filme ${movie.movie_title}`,
-          `Seu filme ${movie.movie_title} estreia em ${new Date(
-            movie.movie_date_lauch
-          ).toLocaleDateString("pt-BR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })}`
-        );
-      } catch (emailError) {}
+      const { user_email } = await this.loginRepository.getUser(userId);
+
+      if (!user_email) {
+        console.warn(`Usuário ${userId} não possui email cadastrado.`);
+        return;
+      }
+
+      await sendEmail(
+        user_email,
+        `Lembrete: estreia do filme ${movie.movie_title}`,
+        `Seu filme ${
+          movie.movie_title
+        } estreia em ${launchDate.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })}`
+      );
+    } catch (err) {
+      console.error("Erro ao enviar email:", err);
     }
   }
 }
@@ -79,7 +85,7 @@ type MovieInput = {
   movie_porcentage_like: number;
 };
 
-type movieAlert = {
+export type MovieAlert = {
   movie_title: string;
-  movie_date_lauch: Date; // ISO Date string
+  movie_date_lauch: Date;
 };
