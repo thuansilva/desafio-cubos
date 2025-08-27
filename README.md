@@ -54,3 +54,5 @@ npm run dev
 ```bash
 npm run test
 ```
+
+3.Configure as variavéis de ambiente caso queira usar a aws
