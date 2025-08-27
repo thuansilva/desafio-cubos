@@ -43,16 +43,16 @@ cd cubo-movies
 npm install
 ```
 
-3.Rode o servidor
+3. Rode o servidor
 
 ```bash
 npm run dev
 ```
 
-3.Execute os Testes
+4. Execute os Testes
 
 ```bash
 npm run test
 ```
 
-3.Configure as variavéis de ambiente caso queira usar a aws
+5. Configure as variavéis de ambiente caso queira usar a aws
